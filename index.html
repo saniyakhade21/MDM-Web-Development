@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Infinite Pages — Digital Library</title>
+  <style>
+    :root{
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --muted: #475569;
+      --accent: #ff5c8d;
+      --accent2: #4f46e5;
+      --glass: rgba(255,255,255,0.75);
+      --text: #0f172a;
+      --radius: 12px;
+      --shadow-sm: 0 6px 18px rgba(16,24,40,0.06);
+      --shadow-lg: 0 18px 40px rgba(16,24,40,0.12);
+    }
+    .dark {
+      --bg: linear-gradient(135deg,#0f172a 0%, #071025 100%);
+      --card: rgba(10,11,13,0.7);
+      --muted: #cbd5e1;
+      --accent: #ff7aa3;
+      --accent2: #8b5cf6;
+      --glass: rgba(255,255,255,0.04);
+      --text: #e6eef8;
+      --shadow-sm: 0 6px 18px rgba(2,6,23,0.6);
+      --shadow-lg: 0 22px 48px rgba(2,6,23,0.7);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      background: linear-gradient(135deg,#ffe2f0 0%,#e0f2fe 50%,#ecfccb 100%);
+      min-height:100vh;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      transition:background 0.35s ease, color 0.35s ease;
+      padding-bottom:80px;
+    }
+    .dark body{ background: var(--bg); }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:18px 28px;
+      background: linear-gradient(90deg,var(--accent),var(--accent2));
+      color:#fff;
+      position:sticky;
+      top:0;
+      z-index:20;
+      box-shadow:var(--shadow-sm);
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:#fff;color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:10px;align-items:center}
+    .btn{
+      background:var(--accent);
+      color:#fff;
+      border:none;
+      padding:8px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      transition:transform .12s ease, opacity .12s;
+      font-weight:600;
+    }
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff}
+    .btn:active{transform:translateY(1px)}
+
+    .container{max-width:1200px;margin:22px auto;padding:0 20px}
+    .hero{display:flex;gap:24px;align-items:flex-start}
+    .hero-left{flex:1}
+    .hero-right{width:320px}
+
+    .search-wrap{display:flex;gap:12px;align-items:center}
+    .search{display:flex;background:var(--card);padding:12px;border-radius:12px;box-shadow:var(--shadow-sm);align-items:center;flex:1}
+    .search input{flex:1;border:none;outline:none;font-size:15px;background:transparent;color:inherit}
+    .filters{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .chip{
+      background:var(--glass);
+      padding:8px 12px;border-radius:999px;font-size:13px;color:var(--text);
+      cursor:pointer;border:1px solid rgba(15,23,42,0.05);transition:transform .12s,box-shadow .12s,background .12s;
+    }
+    .chip:hover{transform:translateY(-3px)}
+    .chip.active{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;box-shadow:var(--shadow-lg)}
+
+    .controls-row{display:flex;gap:10px;margin-top:12px;align-items:center}
+    select{padding:8px 10px;border-radius:10px;border:1px solid rgba(15,23,42,0.06);background:var(--card);}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-top:20px}
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,0.9),var(--card));
+      border-radius:12px;padding:12px;box-shadow:var(--shadow-sm);
+      display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s;
+      cursor:pointer;overflow:hidden;position:relative;
+    }
+    .card:hover{transform:translateY(-8px);box-shadow:var(--shadow-lg)}
+    .cover{height:220px;border-radius:8px;background-size:cover;background-position:center;box-shadow:inset 0 -24px 60px rgba(0,0,0,0.08)}
+    .meta{padding-top:10px;flex:1}
+    .meta h3{margin:0;font-size:15px}
+    .meta p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+    .card-footer{display:flex;justify-content:space-between;gap:8px;margin-top:12px;align-items:center}
+    .save-btn{background:#eef2ff;color:#1e293b;border-radius:10px;padding:6px 10px;border:none;cursor:pointer}
+    .save-btn.saved{background:linear-gradient(90deg,#10b981,#06b6d4);color:#fff}
+
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:rgba(0,0,0,0.06);text-transform:capitalize}
+
+    .modal{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+    .modal.open{display:flex}
+    .dialog{width:100%;max-width:900px;background:var(--card);border-radius:12px;padding:18px;display:flex;gap:18px;animation:pop .22s ease;backdrop-filter: blur(6px)}
+    @keyframes pop{from{transform:scale(0.98);opacity:0}to{transform:scale(1);opacity:1}}
+    .dialog .left{width:320px;flex-shrink:0}
+    .dialog .left .cover{height:320px;border-radius:10px}
+
+    .reading-list{
+      position:fixed;right:18px;bottom:18px;background:var(--card);border-radius:12px;padding:12px;box-shadow:var(--shadow-lg);
+      width:360px;max-height:70vh;overflow:auto;z-index:60;
+    }
+    .reading-list h4{margin:0 0 8px;color:var(--accent2)}
+    .rl-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:110px;background:#111;color:#fff;padding:8px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity 0.18s}
+    .toast.show{opacity:1;pointer-events:auto}
+
+    footer{max-width:1200px;margin:40px auto 60px;padding:0 20px;color:#555;font-size:14px;text-align:center}
+
+    /* Small screens */
+    @media (max-width:900px){
+      .hero{flex-direction:column}
+      .hero-right{width:100%}
+      .dialog{flex-direction:column}
+      .dialog .left{width:100%}
+      .reading-list{right:12px;left:12px;width:auto}
+      .cover{height:180px}
+    }
+
+    /* subtle animations */
+    .fade-in { animation: fadeIn .28s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity:1; transform:none } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">IP</div>
+      <div>
+        <h1>Infinite Pages</h1>
+        <div style="font-size:12px">Digital Library Platform</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn ghost" id="darkToggle" aria-label="Toggle dark mode">Dark</button>
+      <button class="btn" id="signin" aria-label="Sign in">Sign in</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-left">
+        <div class="search-wrap">
+          <div class="search" role="search">
+            <input id="q" placeholder="Search books, authors, genres..." aria-label="Search books" />
+            <button class="btn" id="searchBtn" aria-label="Search">Search</button>
+          </div>
+          <div style="min-width:180px">
+            <select id="sortSelect" aria-label="Sort books">
+              <option value="default">Sort: Default</option>
+              <option value="title-asc">Title A → Z</option>
+              <option value="title-desc">Title Z → A</option>
+              <option value="author-asc">Author A → Z</option>
+              <option value="author-desc">Author Z → A</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filters" id="filters" aria-label="Genres">
+          <div class="chip active" data-filter="all">All</div>
+          <div class="chip" data-filter="fiction">Fiction</div>
+          <div class="chip" data-filter="non-fiction">Non-fiction</div>
+          <div class="chip" data-filter="sci">Science</div>
+          <div class="chip" data-filter="history">History</div>
+          <div class="chip" data-filter="fantasy">Fantasy</div>
+          <div class="chip" data-filter="poetry">Poetry</div>
+          <div class="chip" data-filter="biography">Biography</div>
+          <div class="chip" data-filter="technology">Technology</div>
+          <div class="chip" data-filter="philosophy">Philosophy</div>
+        </div>
+
+        <div class="grid fade-in" id="grid" aria-live="polite"></div>
+      </div>
+
+      <aside class="hero-right">
+        <div style="background:var(--card);padding:16px;border-radius:12px;box-shadow:var(--shadow-sm)">
+          <h3 style="margin:0 0 6px;color:var(--accent)">Featured</h3>
+          <p style="margin:0;color:var(--muted)">Curated picks and staff favorites to get you started.</p>
+          <div style="margin-top:12px;font-weight:600">Welcome to Infinite Pages</div>
+        </div>
+
+        <div style="margin-top:14px;background:var(--card);padding:12px;border-radius:12px;box-shadow:var(--shadow-sm)">
+          <h4 style="margin:0 0 8px">Top Categories</h4>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span class="chip" data-filter="fantasy">Fantasy</span>
+            <span class="chip" data-filter="biography">Biography</span>
+            <span class="chip" data-filter="sci">Science</span>
+            <span class="chip" data-filter="technology">Technology</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="modal" id="modal" role="dialog" aria-hidden="true">
+    <div class="dialog" role="document">
+      <div class="left">
+        <div class="cover" id="modalCover" style="height:320px;background-size:cover;background-position:center"></div>
+      </div>
+      <div class="right" style="flex:1">
+        <h2 id="modalTitle"></h2>
+        <div id="modalAuthor" class="small"></div>
+        <p id="modalDesc" style="margin-top:12px;color:var(--muted)"></p>
+        <div style="margin-top:12px;display:flex;gap:10px">
+          <button class="btn" id="addList" aria-label="Add to reading list">Add to Reading List</button>
+          <button class="btn ghost" id="closeModal" aria-label="Close">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="reading-list" id="readingList" aria-live="polite">
+    <h4>Reading List</h4>
+    <div id="rlItems" class="small empty">No items yet — add books to your list.</div>
+  </aside>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <footer>
+    © <span id="year"></span> Infinite Pages 
+  </footer>
+
+  <script>
+    // ---------- Full dataset (all books) - double quotes used for all strings ----------
+    const books = [
+      {id:1,title:"The Silent Patient",author:"Alex Michaelides",genre:"fiction",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"A shocking psychological thriller about a woman's silence."},
+      {id:2,title:"The Great Gatsby",author:"F. Scott Fitzgerald",genre:"fiction",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Classic novel of wealth and tragedy."},
+      {id:3,title:"To Kill a Mockingbird",author:"Harper Lee",genre:"fiction",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"Pulitzer-winning novel about race and justice."},
+      {id:4,title:"1984",author:"George Orwell",genre:"fiction",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Dystopian vision of a totalitarian future."},
+      {id:5,title:"Brave New World",author:"Aldous Huxley",genre:"fiction",cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60",desc:"A futuristic society controlled by technology and conditioning."},
+      {id:6,title:"Moby-Dick",author:"Herman Melville",genre:"fiction",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"The epic tale of a man's obsession with a whale."},
+      {id:7,title:"Pride and Prejudice",author:"Jane Austen",genre:"fiction",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60",desc:"A classic romantic novel."},
+      {id:8,title:"The Catcher in the Rye",author:"J.D. Salinger",genre:"fiction",cover:"https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=60",desc:"Coming-of-age story in New York City."},
+      {id:9,title:"Lord of the Flies",author:"William Golding",genre:"fiction",cover:"https://images.unsplash.com/photo-1532619187600-1b1b6f77b3b6?auto=format&fit=crop&w=800&q=60",desc:"Boys stranded on an island descend into savagery."},
+      {id:10,title:"Jane Eyre",author:"Charlotte Bronte",genre:"fiction",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Governess and her struggles for love and independence."},
+
+      {id:11,title:"A Brief History of Time",author:"Stephen Hawking",genre:"sci",cover:"https://images.unsplash.com/photo-1581090700227-4c4f50d3e1e1?auto=format&fit=crop&w=800&q=60",desc:"From the Big Bang to black holes."},
+      {id:12,title:"Cosmos",author:"Carl Sagan",genre:"sci",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60",desc:"A journey through the universe."},
+      {id:13,title:"The Selfish Gene",author:"Richard Dawkins",genre:"sci",cover:"https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=60",desc:"Evolutionary biology explained."},
+      {id:14,title:"Silent Spring",author:"Rachel Carson",genre:"sci",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Environmental science classic."},
+      {id:15,title:"The Gene",author:"Siddhartha Mukherjee",genre:"sci",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"A history of genetic research."},
+      {id:16,title:"Astrophysics for People in a Hurry",author:"Neil deGrasse Tyson",genre:"sci",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"Concise guide to the universe."},
+      {id:17,title:"Pale Blue Dot",author:"Carl Sagan",genre:"sci",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Humanity's perspective in the cosmos."},
+      {id:18,title:"The Elegant Universe",author:"Brian Greene",genre:"sci",cover:"https://images.unsplash.com/photo-1532619187600-1b1b6f77b3b6?auto=format&fit=crop&w=800&q=60",desc:"String theory explained."},
+      {id:19,title:"Origin of Species",author:"Charles Darwin",genre:"sci",cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60",desc:"Foundation of evolutionary biology."},
+      {id:20,title:"The Immortal Life of Henrietta Lacks",author:"Rebecca Skloot",genre:"sci",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"Medical ethics and cell research."},
+
+      {id:21,title:"Sapiens",author:"Yuval Noah Harari",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1544937950-fa07a98d237f?auto=format&fit=crop&w=800&q=60",desc:"A brief history of humankind."},
+      {id:22,title:"Educated",author:"Tara Westover",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=800&q=60",desc:"Memoir of education against the odds."},
+      {id:23,title:"Becoming",author:"Michelle Obama",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1526318472351-c75fcf0709c3?auto=format&fit=crop&w=800&q=60",desc:"Personal memoir of Michelle Obama."},
+      {id:24,title:"The Diary of a Young Girl",author:"Anne Frank",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"Personal diary from WWII."},
+      {id:25,title:"The Wright Brothers",author:"David McCullough",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Story of the first successful flight."},
+      {id:26,title:"Unbroken",author:"Laura Hillenbrand",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"Survivor of WWII POW camps."},
+      {id:27,title:"Into Thin Air",author:"Jon Krakauer",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Mount Everest disaster story."},
+      {id:28,title:"Guns, Germs, and Steel",author:"Jared Diamond",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"Why societies developed differently."},
+      {id:29,title:"The Power of Habit",author:"Charles Duhigg",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1532619187600-1b1b6f77b3b6?auto=format&fit=crop&w=800&q=60",desc:"How habits shape our lives."},
+      {id:30,title:"Thinking, Fast and Slow",author:"Daniel Kahneman",genre:"non-fiction",cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60",desc:"Psychology of decision making."},
+
+      {id:31,title:"Dune",author:"Frank Herbert",genre:"fantasy",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"Epic sci-fi/fantasy on Arrakis."},
+      {id:32,title:"Harry Potter and the Sorcerer's Stone",author:"J.K. Rowling",genre:"fantasy",cover:"https://images.unsplash.com/photo-1529101091764-c3526daf38fe?auto=format&fit=crop&w=800&q=60",desc:"A young wizard begins his journey."},
+      {id:33,title:"The Hobbit",author:"J.R.R. Tolkien",genre:"fantasy",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60",desc:"Bilbo Baggins adventure in Middle Earth."},
+      {id:34,title:"The Name of the Wind",author:"Patrick Rothfuss",genre:"fantasy",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"Epic fantasy of a gifted young man."},
+      {id:35,title:"The Way of Kings",author:"Brandon Sanderson",genre:"fantasy",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Epic fantasy series opener."},
+      {id:36,title:"Mistborn",author:"Brandon Sanderson",genre:"fantasy",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"Fantasy world with unique magic system."},
+      {id:37,title:"A Game of Thrones",author:"George R.R. Martin",genre:"fantasy",cover:"https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=60",desc:"First book of the epic series."},
+      {id:38,title:"The Lion, the Witch and the Wardrobe",author:"C.S. Lewis",genre:"fantasy",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"Narnia adventures."},
+      {id:39,title:"Eragon",author:"Christopher Paolini",genre:"fantasy",cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60",desc:"Dragon rider saga."},
+      {id:40,title:"The Black Prism",author:"Brent Weeks",genre:"fantasy",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Magic and political intrigue."},
+
+      {id:41,title:"Leaves of Grass",author:"Walt Whitman",genre:"poetry",cover:"https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=60",desc:"Celebrated poetry collection."},
+      {id:42,title:"The Waste Land",author:"T.S. Eliot",genre:"poetry",cover:"https://images.unsplash.com/photo-1473187983305-f615310e7daa?auto=format&fit=crop&w=800&q=60",desc:"A modernist masterpiece."},
+      {id:43,title:"Paradise Lost",author:"John Milton",genre:"poetry",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Epic poem about the fall of man."},
+      {id:44,title:"The Divine Comedy",author:"Dante Alighieri",genre:"poetry",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"Journey through hell, purgatory, and heaven."},
+      {id:45,title:"Ode to a Nightingale",author:"John Keats",genre:"poetry",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Classic romantic poem."},
+      {id:46,title:"The Raven",author:"Edgar Allan Poe",genre:"poetry",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60",desc:"Famous melancholic poem."},
+      {id:47,title:"Song of Myself",author:"Walt Whitman",genre:"poetry",cover:"https://images.unsplash.com/photo-1532619187600-1b1b6f77b3b6?auto=format&fit=crop&w=800&q=60",desc:"Celebration of individuality."},
+      {id:48,title:"The Iliad",author:"Homer",genre:"poetry",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"Epic poem about the Trojan War."},
+      {id:49,title:"The Odyssey",author:"Homer",genre:"poetry",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Epic journey of Odysseus."},
+      {id:50,title:"Inferno",author:"Dante Alighieri",genre:"poetry",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"First part of Divine Comedy."},
+
+      {id:51,title:"Becoming",author:"Michelle Obama",genre:"biography",cover:"https://images.unsplash.com/photo-1526318472351-c75fcf0709c3?auto=format&fit=crop&w=800&q=60",desc:"Memoir by Michelle Obama."},
+      {id:52,title:"The Diary of a Young Girl",author:"Anne Frank",genre:"biography",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"Personal diary from WWII."},
+      {id:53,title:"Steve Jobs",author:"Walter Isaacson",genre:"biography",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60",desc:"Biography of Apple co-founder."},
+      {id:54,title:"Long Walk to Freedom",author:"Nelson Mandela",genre:"biography",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Autobiography of Nelson Mandela."},
+      {id:55,title:"Elon Musk",author:"Ashlee Vance",genre:"biography",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Biography of Elon Musk."},
+      {id:56,title:"Alexander Hamilton",author:"Ron Chernow",genre:"biography",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"Life of Alexander Hamilton."},
+      {id:57,title:"Churchill: A Life",author:"Martin Gilbert",genre:"biography",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"Biography of Winston Churchill."},
+      {id:58,title:"The Autobiography of Malcolm X",author:"Malcolm X",genre:"biography",cover:"https://images.unsplash.com/photo-1532619187600-1b1b6f77b3b6?auto=format&fit=crop&w=800&q=60",desc:"Memoir of civil rights leader."},
+      {id:59,title:"Leonardo da Vinci",author:"Walter Isaacson",genre:"biography",cover:"https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60",desc:"Life of the Renaissance genius."},
+      {id:60,title:"Benjamin Franklin: An American Life",author:"Walter Isaacson",genre:"biography",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Biography of Benjamin Franklin."},
+
+      {id:61,title:"Clean Code",author:"Robert C. Martin",genre:"technology",cover:"https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&fit=crop&w=800&q=60",desc:"A handbook of agile software craftsmanship."},
+      {id:62,title:"The Pragmatic Programmer",author:"Andrew Hunt",genre:"technology",cover:"https://images.unsplash.com/photo-1517433456452-f9633a875f6f?auto=format&fit=crop&w=800&q=60",desc:"Tips for modern programmers."},
+      {id:63,title:"Introduction to Algorithms",author:"Cormen et al.",genre:"technology",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Comprehensive algorithm reference."},
+      {id:64,title:"Artificial Intelligence: A Modern Approach",author:"Russell & Norvig",genre:"technology",cover:"https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=800&q=60",desc:"Leading AI textbook."},
+      {id:65,title:"Design Patterns",author:"Gamma et al.",genre:"technology",cover:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=800&q=60",desc:"Elements of reusable object-oriented software."},
+      {id:66,title:"Code Complete",author:"Steve McConnell",genre:"technology",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60",desc:"Practical software construction guide."},
+      {id:67,title:"Refactoring",author:"Martin Fowler",genre:"technology",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60",desc:"Improving existing code."},
+      {id:68,title:"Deep Learning",author:"Ian Goodfellow",genre:"technology",cover:"https://images.unsplash.com/photo-1529651737248-dad5e401bb6f?auto=format&fit=crop&w=800&q=60",desc:"Comprehensive deep learning guide."},
+      {id:69,title:"The Mythical Man-Month",author:"Fred Brooks",genre:"technology",cover:"https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60",desc:"Software engineering classic."},
+      {id:70,title:"Peopleware",author:"Tom DeMarco",genre:"technology",cover:"https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=60",desc:"Productive teams and software development."},
+
+      {id:100,title:"The Silk Roads",author:"Peter Frankopan",genre:"history",cover:"https://images.unsplash.com/photo-1581091012184-81e94c64d31b?auto=format&w=800&q=60",desc:"A new history of the world from the perspective of the Silk Roads."},
+      {id:101,title:"1776",author:"David McCullough",genre:"history",cover:"https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&w=800&q=60",desc:"The story of America's founding year."},
+      {id:102,title:"The Rise and Fall of the Third Reich",author:"William L. Shirer",genre:"history",cover:"https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&w=800&q=60",desc:"Comprehensive account of Nazi Germany."},
+      {id:103,title:"Team of Rivals",author:"Doris Kearns Goodwin",genre:"history",cover:"https://images.unsplash.com/photo-1598899134739-d6f3724f2a90?auto=format&w=800&q=60",desc:"The political genius of Abraham Lincoln."},
+      {id:104,title:"The Wright Brothers",author:"David McCullough",genre:"history",cover:"https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&w=800&q=60",desc:"Biography of the inventors of flight."},
+      {id:105,title:"Alexander Hamilton",author:"Ron Chernow",genre:"history",cover:"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&w=800&q=60",desc:"Biography of Alexander Hamilton."},
+      {id:106,title:"Gulag Archipelago",author:"Aleksandr Solzhenitsyn",genre:"history",cover:"https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&w=800&q=60",desc:"Soviet labor camps exposed."},
+      {id:107,title:"The History of the Ancient World",author:"Susan Wise Bauer",genre:"history",cover:"https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&w=800&q=60",desc:"From the earliest accounts to the fall of Rome."},
+      {id:108,title:"SPQR",author:"Mary Beard",genre:"history",cover:"https://images.unsplash.com/photo-1581091012184-81e94c64d31b?auto=format&w=800&q=60",desc:"A history of ancient Rome."},
+      {id:109,title:"The Guns of August",author:"Barbara W. Tuchman",genre:"history",cover:"https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&w=800&q=60",desc:"The outbreak of World War I."},
+
+      {id:200,title:"Nicomachean Ethics",author:"Aristotle",genre:"philosophy",cover:"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&w=800&q=60",desc:"Aristotle on virtue and moral character."},
+      {id:201,title:"Critique of Pure Reason",author:"Immanuel Kant",genre:"philosophy",cover:"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&w=800&q=60",desc:"Kant's foundational work in epistemology."},
+      {id:202,title:"Beyond Good and Evil",author:"Friedrich Nietzsche",genre:"philosophy",cover:"https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&w=800&q=60",desc:"Exploration of morality and philosophy."},
+      {id:203,title:"Being and Time",author:"Martin Heidegger",genre:"philosophy",cover:"https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&w=800&q=60",desc:"Existentialist philosophy and ontology."},
+      {id:204,title:"Leviathan",author:"Thomas Hobbes",genre:"philosophy",cover:"https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&w=800&q=60",desc:"Social contract theory."},
+      {id:205,title:"Meditations on First Philosophy",author:"René Descartes",genre:"philosophy",cover:"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&w=800&q=60",desc:"Foundation of modern philosophy."},
+      {id:206,title:"The Social Contract",author:"Jean-Jacques Rousseau",genre:"philosophy",cover:"https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&w=800&q=60",desc:"Political philosophy classic."},
+      {id:207,title:"The Prince",author:"Niccolò Machiavelli",genre:"philosophy",cover:"https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&w=800&q=60",desc:"Political strategy and philosophy."},
+      {id:208,title:"On Liberty",author:"John Stuart Mill",genre:"philosophy",cover:"https://images.unsplash.com/photo-1581091012184-81e94c64d31b?auto=format&w=800&q=60",desc:"Classic liberal philosophy."},
+      {id:209,title:"The Tao Te Ching",author:"Lao Tzu",genre:"philosophy",cover:"https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&w=800&q=60",desc:"Ancient Chinese philosophy and wisdom."}
+    ];
+
+    // ---------- State ----------
+    let readingList = JSON.parse(localStorage.getItem("ip_reading_list") || "[]");
+    let darkMode = localStorage.getItem("ip_dark") === "true";
+
+    // ---------- Elements ----------
+    const grid = document.getElementById("grid");
+    const rlItems = document.getElementById("rlItems");
+    const modal = document.getElementById("modal");
+    const modalCover = document.getElementById("modalCover");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalAuthor = document.getElementById("modalAuthor");
+    const modalDesc = document.getElementById("modalDesc");
+    const addListBtn = document.getElementById("addList");
+    const closeModalBtn = document.getElementById("closeModal");
+    const toast = document.getElementById("toast");
+    const yearEl = document.getElementById("year");
+    yearEl.textContent = new Date().getFullYear();
+
+    let activeBook = null;
+    let activeFilter = "all";
+    let activeSearch = "";
+    let activeSort = "default";
+
+    // ---------- Dark mode init ----------
+    function applyDarkMode() {
+      if (darkMode) {
+        document.documentElement.classList.add("dark");
+        document.getElementById("darkToggle").textContent = "Light";
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.getElementById("darkToggle").textContent = "Dark";
+      }
+    }
+    applyDarkMode();
+
+    document.getElementById("darkToggle").addEventListener("click", () => {
+      darkMode = !darkMode;
+      localStorage.setItem("ip_dark", darkMode);
+      applyDarkMode();
+      showToast(darkMode ? "Dark mode on" : "Dark mode off");
+    });
+
+    // ---------- Rendering ----------
+    function sortBooks(arr, mode) {
+      if (mode === "title-asc") return arr.sort((a,b)=> a.title.localeCompare(b.title));
+      if (mode === "title-desc") return arr.sort((a,b)=> b.title.localeCompare(a.title));
+      if (mode === "author-asc") return arr.sort((a,b)=> a.author.localeCompare(b.author));
+      if (mode === "author-desc") return arr.sort((a,b)=> b.author.localeCompare(a.author));
+      return arr;
+    }
+
+    function renderBooks(filter = activeFilter, search = activeSearch, sortMode = activeSort) {
+      grid.innerHTML = "";
+      const s = (search || "").toLowerCase();
+      let filtered = books.filter(b => {
+        const matchesFilter = (filter === "all" || b.genre === filter);
+        const matchesSearch = s === "" || (b.title && b.title.toLowerCase().includes(s)) || (b.author && b.author.toLowerCase().includes(s)) || (b.genre && b.genre.toLowerCase().includes(s));
+        return matchesFilter && matchesSearch;
+      });
+      filtered = sortBooks(filtered, sortMode);
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div style="padding:28px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);">No books found.</div>`;
+        return;
+      }
+      filtered.forEach(book => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <div class="cover" style="background-image:url('${book.cover}')"></div>
+          <div class="meta">
+            <h3>${escapeHtml(book.title)}</h3>
+            <p>${escapeHtml(book.author)}</p>
+          </div>
+          <div class="card-footer">
+            <span class="tag">${escapeHtml(book.genre)}</span>
+            <div style="display:flex;gap:8px">
+              <button class="save-btn" data-id="${book.id}" aria-label="View ${escapeHtml(book.title)}">View</button>
+            </div>
+          </div>
+        `;
+        // open modal when clicking card or view button
+        div.querySelector(".cover").addEventListener("click", ()=> openModal(book.id));
+        div.querySelector(".meta").addEventListener("click", ()=> openModal(book.id));
+        div.querySelector(".save-btn").addEventListener("click", (e)=> { e.stopPropagation(); openModal(book.id); });
+        grid.appendChild(div);
+      });
+    }
+
+    // ---------- Utility ----------
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    }
+
+    function openModal(id) {
+      activeBook = books.find(b => b.id === id);
+      if (!activeBook) return;
+      modalCover.style.backgroundImage = `url('${activeBook.cover}')`;
+      modalTitle.textContent = activeBook.title;
+      modalAuthor.textContent = activeBook.author;
+      modalDesc.textContent = activeBook.desc || "";
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden","false");
+    }
+
+    function closeModal() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden","true");
+      activeBook = null;
+    }
+
+    function addToReadingList(){
+      if (!activeBook) return;
+      if (!readingList.find(b => b.id === activeBook.id)) {
+        readingList.push(activeBook);
+        persistReadingList();
+        renderReadingList();
+        showToast(`${activeBook.title} added to reading list`);
+      } else {
+        showToast(`${activeBook.title} is already in reading list`);
+      }
+      closeModal();
+    }
+
+    function removeFromReadingList(id){
+      readingList = readingList.filter(b => b.id !== id);
+      persistReadingList();
+      renderReadingList();
+      showToast("Removed from reading list");
+    }
+
+    function persistReadingList(){
+      localStorage.setItem("ip_reading_list", JSON.stringify(readingList));
+    }
+
+    function renderReadingList(){
+      if (readingList.length === 0) {
+        rlItems.textContent = "No items yet — add books to your list.";
+        return;
+      }
+      rlItems.innerHTML = "";
+      readingList.forEach(b=>{
+        const div = document.createElement("div");
+        div.className = "rl-item";
+        div.innerHTML = `<div style="flex:1"><strong>${escapeHtml(b.title)}</strong><div style="font-size:12px;color:var(--muted)">${escapeHtml(b.author)}</div></div>
+                         <div style="display:flex;gap:8px;align-items:center">
+                           <button class="btn ghost" data-remove="${b.id}" aria-label="Remove ${escapeHtml(b.title)}">Remove</button>
+                         </div>`;
+        div.querySelector("[data-remove]").addEventListener("click", ()=> removeFromReadingList(b.id));
+        rlItems.appendChild(div);
+      });
+    }
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(()=> toast.classList.remove("show"), 2000);
+    }
+
+    // ---------- Event wiring ----------
+    document.getElementById("closeModal").addEventListener("click", closeModal);
+    addListBtn.addEventListener("click", addToReadingList);
+
+    document.getElementById("searchBtn").addEventListener("click", ()=>{
+      activeSearch = document.getElementById("q").value.trim();
+      renderBooks();
+    });
+    document.getElementById("q").addEventListener("input", (e)=>{
+      activeSearch = e.target.value.trim();
+      renderBooks();
+    });
+
+    document.getElementById("sortSelect").addEventListener("change", (e)=>{
+      activeSort = e.target.value;
+      renderBooks();
+    });
+
+    // chips
+    document.querySelectorAll(".chip").forEach(chip=>{
+      chip.addEventListener("click", ()=>{
+        document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+        chip.classList.add("active");
+        activeFilter = chip.dataset.filter;
+        renderBooks();
+      });
+    });
+
+    // show reading list area toggle (kept visible as sidebar)
+    // (reading-list is visible by default in this layout)
+    // Persisted reading list on load
+    renderReadingList();
+
+    // click outside modal to close
+    modal.addEventListener("click", (e)=>{
+      if (e.target === modal) closeModal();
+    });
+
+    // keyboard Escape to close modal
+    document.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape") {
+        if (modal.classList.contains("open")) closeModal();
+      }
+    });
+
+    // Initial rendering
+    renderBooks();
+    // show persisted reading list
+    renderReadingList();
+
+    // expose remove function on small screens (optional)
+    // keep footer year current (done earlier)
+
+  </script>
+</body>
+</html>
